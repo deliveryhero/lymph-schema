@@ -76,6 +76,8 @@ def _to_jsonschema(type_):
         return {'type': 'boolean'}
     elif issubclass(type_, typing.MutableSequence[typing.T]):
         items_type = type_.__parameters__[0]
+        if issubclass(items_type, marshmallow.Schema):
+            items_type = items_type()
         return {
             'type': 'array',
             'items': _to_jsonschema(items_type),

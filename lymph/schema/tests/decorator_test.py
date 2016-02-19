@@ -13,18 +13,30 @@ def _dummy():
     pass
 
 
+class FancyString(fields.String):
+    pass
+
+
 class NestedSchema(Schema):
     id = fields.UUID(missing=lambda: str(uuid.uuid4()))
     name = fields.String(required=True)
 
 
+class OtherSchema(Schema):
+    name = FancyString()
+
+
 class ExampleSchema(Schema):
     id = fields.UUID(missing=lambda: str(uuid.uuid4()))
-    name = fields.String()
+    name = FancyString()
     price = fields.Decimal(required=True)
+    pricy = fields.Decimal(load_from='price', dump_to='pricey')
     quantity = fields.Integer(missing=1)
     simple_list = fields.Nested(NestedSchema, many=True)
     simple = fields.Nested(NestedSchema, required=True)
+    simple_self = fields.Nested('self', only=('id', 'price'), many=False)
+    simple_self_list = fields.Nested('self', only=('id', 'price'), many=True)
+    complex_self_list = fields.Nested('self', exclude=('pricy', 'simple_self', 'simple_self_list', 'complex_self_list', 'simple_list', 'simple'), many=True)
 
 
 class DecoratorTest(unittest.TestCase):
@@ -46,6 +58,13 @@ class DecoratorTest(unittest.TestCase):
             list: {'type': 'array'},
             bool: {'type': 'boolean'},
             typing.List[str]: {'type': 'array', 'items': {'type': 'string'}},
+            typing.List[OtherSchema]: {'type': 'array', 'items': {
+                'properties': {
+                    'name': {'title': 'name', 'type': 'string'},
+                },
+                'required': [],
+                'type': 'object'
+            }},
             ExampleSchema(): {
                 'type': 'object',
                 'properties': {
@@ -69,8 +88,41 @@ class DecoratorTest(unittest.TestCase):
                         },
                         'required': ['name'],
                     },
+                    'simple_self_list': {
+                        'type': ['array', 'null'],
+                        'items': {
+                            'properties': {
+                                'id': {'title': 'id', 'type': 'string', 'format': 'uuid'},
+                                'price': {'title': 'price', 'type': 'number', 'format': 'decimal'},
+                            },
+                            'required': ['price'],
+                            'type': 'object'
+                        },
+                    },
+                    'simple_self': {
+                        'type': 'object',
+                        'properties': {
+                            'id': {'format': 'uuid', 'title': 'id', 'type': 'string'},
+                            'price': {'format': 'decimal', 'title': 'price', 'type': 'number'}
+                        },
+                        'required': ['price'],
+                    },
+                    'complex_self_list': {
+                        'type': ['array', 'null'],
+                        'items': {
+                            'properties': {
+                                'id': {'title': 'id', 'type': 'string', 'format': 'uuid'},
+                                'price': {'title': 'price', 'type': 'number', 'format': 'decimal'},
+                                'name': {'title': 'name', 'type': 'string'},
+                                'quantity': {'title': 'quantity', 'type': 'number', 'format': 'integer'},
+                            },
+                            'required': ['price'],
+                            'type': 'object'
+                        },
+                    },
                     'name': {'title': 'name', 'type': 'string'},
                     'price': {'title': 'price', 'type': 'number', 'format': 'decimal'},
+                    'pricey': {'title': 'pricy', 'type': 'number', 'format': 'decimal'},
                     'quantity': {'title': 'quantity', 'type': 'number', 'format': 'integer'},
                 },
                 'required': ['price', 'simple'],
@@ -82,7 +134,7 @@ class DecoratorTest(unittest.TestCase):
             self.assertEqual(_dummy.__annotations__['return'], out)
 
     def test_unsupported_type(self):
-        class A:
+        class A(object):
             pass
 
         with self.assertRaises(ValueError):

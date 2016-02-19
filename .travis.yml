@@ -10,9 +10,10 @@ before_install:
     - pip install -U pip flake8
     - flake8 lymph
     - sudo apt-get update -qq
-    - sudo apt-get install zookeeper
+    - sudo apt-get install zookeeper -y
 
 install:
+    - pip install gevent==1.0.2
     - pip install
       $(if [ $MAJOR_TRAVIS_PYTHON_VERSION = "3" ]; then echo "-r requirements/base.txt"; fi)
       -r requirements/dev.txt
