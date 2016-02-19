@@ -34,10 +34,11 @@ class JsonSchemaDict(collections.MutableMapping):
 
         >>> properties = {
         ...     'name': {'type': 'string'},
-        ...     'age': {'type': 'number', 'format': 'integer'}
+        ...     'age': {'type': 'number', 'format': 'integer'},
+        ...     'addresses': {'type': ['array', 'null']},
         ... }
         ...
-        >>> d = JsonSchemaDict(properties, {'name': 'joe', 'age': 11})
+        >>> d = JsonSchemaDict(properties, {'name': 'joe', 'age': 11, 'addresses': []})
         >>> d['age'] = 12
         >>> d['age']
         12
@@ -49,10 +50,11 @@ class JsonSchemaDict(collections.MutableMapping):
         Traceback (most recent call last):
             ...
         KeyError: "unknown key 'new_key'"
+        >>> d['addresses'] = None
         >>> len(d)
-        2
+        3
         >>> sorted(k for k in d)
-        ['age', 'name']
+        ['addresses', 'age', 'name']
         >>> del d['age']
 
     """
@@ -70,19 +72,22 @@ class JsonSchemaDict(collections.MutableMapping):
 
         self.__values[key] = value
 
-    @staticmethod
-    def __check_type_match(key, value, schema):
+    def __check_type_match(self, key, value, schema):
         # FIXME: How about nested object checking ? object, array ?
-        try:
-            if 'format' in schema:
-                vtype = _TYPES[schema['format']]
-            else:
-                vtype = _TYPES[schema['type']]
-        except KeyError:
-            raise RuntimeError('malformed schema %s' % schema)
-
+        vtype = self.__get_type(value, schema)
         if not isinstance(value, vtype):
             raise TypeError("cannot set %r (type %s) to %r" % (key, vtype, value))
+
+    @staticmethod
+    def __get_type(value, schema):
+        if 'format' in schema:
+            return _TYPES[schema['format']]
+        elif 'type' in schema:
+            if isinstance(schema['type'], list):
+                return tuple(_TYPES[t] for t in schema['type'])
+            return _TYPES[schema['type']]
+        else:
+            raise RuntimeError('malformed schema')
 
     def __getitem__(self, key):
         return self.__values[key]

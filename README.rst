@@ -87,7 +87,7 @@ To generate a schema from a service configuration on the command line do:
 
 ::
 
-    lymph schema-gen conf/orders.yml
+    lymph gen-schema conf/orders.yml
     {
         "orders": ...
     }

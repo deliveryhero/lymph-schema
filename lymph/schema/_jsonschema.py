@@ -11,6 +11,7 @@ from marshmallow.compat import text_type, binary_type
 __all__ = ['dump_schema']
 
 
+_RECURSIVE_NESTED = 'self'
 TYPE_MAP = {
     dict: {
         'type': 'object',
@@ -80,15 +81,27 @@ def dump_schema(schema_obj):
     mapping[fields.List] = list
     mapping[fields.Url] = text_type
     mapping[fields.LocalDateTime] = datetime.datetime
+
     for field_name, field in sorted(schema_obj.fields.items()):
+        schema = None
+
         if field.__class__ in mapping:
             pytype = mapping[field.__class__]
             schema = _from_python_type(field, pytype)
         elif isinstance(field, fields.Nested):
             schema = _from_nested_schema(field)
-        else:
+        elif issubclass(field.__class__, fields.Field):
+            for cls in mapping.keys():
+                if issubclass(field.__class__, cls):
+                    pytype = mapping[cls]
+                    schema = _from_python_type(field, pytype)
+                    break
+
+        if schema is None:
             raise ValueError('unsupported field type %s' % field)
-        json_schema['properties'][field.name] = schema
+
+        field_name = field.dump_to or field.name
+        json_schema['properties'][field_name] = schema
         if field.required:
             json_schema['required'].append(field.name)
     return json_schema
@@ -107,7 +120,13 @@ def _from_python_type(field, pytype):
 
 
 def _from_nested_schema(field):
-    schema = dump_schema(field.nested())
+    if field.nested == _RECURSIVE_NESTED:
+        parent_class = field.parent.__class__
+        nested = parent_class(many=field.many, only=field.only, exclude=field.exclude)
+    else:
+        nested = field.nested()
+
+    schema = dump_schema(nested)
     if field.many:
         schema = {
             'type': ["array"] if field.required else ['array', 'null'],

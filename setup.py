@@ -7,7 +7,7 @@ with open('README.rst') as f:
 
 setup(
     name='lymph-schema',
-    version='0.2.0-dev',
+    version='0.4.0-dev',
     url='http://github.com/deliveryhero/lymph-schema/',
     packages=find_packages(),
     namespace_packages=['lymph'],
