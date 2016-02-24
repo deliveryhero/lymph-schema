@@ -1,5 +1,20 @@
 #!/bin/bash
 
+# Given we have a structure of service and consumer repositories
+#   And a consumer needs to know the schema of a service and stores that schema somewhere in its repository
+#  Then that stored schema should be updated automatically if the service schema was changed
+#
+# This script will push the changed schema to all consumers of a service if the consumers register themselves
+# in the service repository. There needs to be a ".consumers.txt" file in the service repository.
+# Expected structure: <owner/repo>:<path_to_schemas_folder>:<push_to_master|create_pr>
+# Example:
+# mycompany/api-sun:/api/sun/some/path/schemas/:create_pr
+# mycompany/api-rain:/api/rain/another/path/schemas/:push_to_master
+#
+# In the file ".travis.yml" of the service repository, a hook needs to be added to run the script.
+# Example:
+# - if [ $TRAVIS_PYTHON_VERSION = "2.7" ] && [ $TRAVIS_PULL_REQUEST = "false" ] && [ $TRAVIS_BRANCH = "master" ]; then git clone --depth=1 git@github.com:deliveryhero/lymph-schema.git && ./lymph-schema/scripts/push-new-schema-to-consumers.sh this-service-repo; fi
+
 
 ######################### READ ARGUMENTS #########################
 # please give in the command line the service repository which should update
@@ -20,14 +35,15 @@ pure_service_name=${service#dhh-}
 schema_file_name="${service}-schema.py"
 schema_file_name="${schema_file_name//-/_}"
 touch ${schema_file_name}
-printf "# -*- coding=utf-8 -*-\n\nimport json\n\nschema = " >> ${schema_file_name}
+printf "# -*- coding=utf-8 -*-\n\nimport json\n\nschema = json.loads('" >> ${schema_file_name}
 lymph gen-schema conf/${pure_service_name}.yml >> ${schema_file_name}
+printf "')" >> ${schema_file_name}
 schema_file="$(pwd)/${schema_file_name}"
 
 
 ######################### UPDATE CONSUMERS #########################
 create_pr () {
-    branch_name="testing_schema_update"
+    branch_name="${service}_schema_update"
     git checkout -b ${branch_name}
     git add --all :/
     git commit -m "update schema file ${schema_file_name}"
