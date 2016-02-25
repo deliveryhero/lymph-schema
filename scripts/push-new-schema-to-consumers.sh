@@ -74,7 +74,13 @@ update_repo () {
     cp ${schema_file} .
 
     # update the consumer according to the desired method (3. param)
-    `${3}`
+    if [ "${3}" == "create_pr" ]; then
+        create_pr
+    elif [ "${3}" == "push_to_master" ]; then
+        push_to_master
+    else
+        echo "command not found: ${3}"
+    fi
 
     # move out of $consumer folder and clean up
     cd ${service_dir}
