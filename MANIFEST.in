@@ -1,3 +1,4 @@
 include requirements/*.txt
 include README.rst
 recursive-include lymph *.py
+include scripts/push-new-schema-to-consumers.sh
