@@ -69,8 +69,10 @@ update_repo () {
     # clone repo to path
     git clone git@github.com:${repo}.git ${repo_path}
 
-    # go to path and copy the new schema here
+    # go to path and copy the new schema here and set name and email for github
     cd ${full_path_to_schema}
+    git config --local user.email "travis@dhh-docs.com"
+    git config --local user.name "Travis"
     cp ${schema_file} .
 
     # update the consumer according to the desired method (3. param)
@@ -99,9 +101,3 @@ while IFS='' read -r line || [[ -n "$line" ]]; do
     method=$(echo ${line} | cut -f3 -d:)
     update_repo ${repo} ${path} ${method}
 done < ".consumers.txt"
-
-
-######################### CLEAN UP #########################
-# move out of $service folder and clean up
-popd
-rm -rf ${service}
