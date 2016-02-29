@@ -35,9 +35,9 @@ pure_service_name=${service#dhh-}
 schema_file_name="${service}-schema.py"
 schema_file_name="${schema_file_name//-/_}"
 touch ${schema_file_name}
-printf "# -*- coding=utf-8 -*-\n\nimport json\n\nschema = json.loads('" >> ${schema_file_name}
+printf "# -*- coding=utf-8 -*-\n\nimport json\n\nschema = json.loads(r'''" >> ${schema_file_name}
 lymph gen-schema conf/${pure_service_name}.yml >> ${schema_file_name}
-printf "')" >> ${schema_file_name}
+printf "''')" >> ${schema_file_name}
 schema_file="$(pwd)/${schema_file_name}"
 
 
